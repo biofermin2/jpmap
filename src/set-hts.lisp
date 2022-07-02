@@ -1,60 +1,13 @@
 ﻿(in-package :jpmap)
 
-(defstruct area
-  (name nil))				; => AREA
+(defun adr3->2 (adr3-name)
+  (caar (seek adr3-name (format nil "~a" adr-tree) :skin 1 :str nil))) ; => ADR3->2
 
-(defstruct (ward (:include area))
-  (lat 0)
-  (lon 0))				; => WARD
-
-(defstruct (town (:include ward))
-  (dist 0))				; => TOWN
-
-(defparameter pref-tree nil "ツリー作成用の変数") ; => PREF-TREE
+(defun show-adr2-name (n)
+  "番号を入れたら行政区名を表示する。"
+  (nth (1- n) adr2-name))  ; => SHOW-ADR2-NAME
 
 
-(defparameter prefs-name (car pref-tree) "都道府県名") ; => PREFS-NAME
-
-(defun prefs-name (n)
-  (area-name (gethash n prefs-ht)))	; => PREFS-NAME
-
-(defparameter prefs-ht (make-hash-table)) ; => PREFS-HT
-
-(defparameter prefs '(北海道 青森県 岩手県 宮城県 秋田県
-			  山形県 福島県 茨城県 栃木県 群馬県
-			  埼玉県 千葉県 東京都 神奈川 新潟県
-			  富山県 石川県 福井県 山梨県 長野県
-			  岐阜県 静岡県 愛知県 三重県 滋賀県
-			  京都府 大阪府 兵庫県 奈良県 和歌山県
-			  鳥取県 島根県 岡山県 広島県 山口県
-			  徳島県 香川県 愛媛県 高知県 福岡県
-			  佐賀県 長崎県 熊本県 大分県 宮崎県
-		      鹿児島県 沖縄県))	; => PREFS
-
-
-(defparameter towns/ward (mapcar #'cdr (cdr pref-tree))) ; => TOWNS/WARD
-
-(defun make-prefs-ht ()
-  (loop :for i :in prefs
-     :count i :into cnt
-     :do (put-ht cnt (make-area :name i) prefs-ht))) ; => MAKE-PREFS-HT
-
-
-
-;; 行政区名
-(defparameter ward-name (mapcar #'car (cdr pref-tree))) ; => WARD-NAME
-
-(defun show-ward-name (n)
-  (nth (1- n) ward-name))    ; => SHOW-WARD-NAME
-
-
-(defun put-ht (k v ht)
-  (setf (gethash k ht) v))		; => PUT-HT
-
-(defun puts-ht (lst ht)
-  (loop :for i :in lst
-	:count i :into cnt
-     :do (put-ht cnt i ht)))		; => PUTS-HT
 
 ;; ok [2022-05-24]
 (defun comb (lst)
@@ -64,52 +17,77 @@
 	     (mapcar #'(lambda (x) (list key x)) rest))))
     (mapcon #'pair lst)))		; => COMB
 
-(defparameter ward-ht (make-hash-table)) ; => WARD-HT
+(defun make-adr1-ht ()
+  (loop :for i :in prefs
+     :count i :into cnt
+     :do (put-ht cnt (make-area :name i :gm "") adr1-ht))) ; => MAKE-ADR1-HT
 
-(defparameter town-ht (make-hash-table)) ; => TOWN-HT
+(defun adr1-name (n)
+  (area-name (gethash n adr1-ht)))	; => ADR1-NAME
 
-(defun min-town (n ward-ht town-ht)
+
+(defun min-town (n adr2-ht adr3-ht)
+  "同一行政区の中で一番distの合計が小さかった町村名"
   (check-type n integer)
-  (loop :for v :being the hash-values :of town-ht :using (hash-key k)
+  (let (adr2-v)
+    (loop :for v :being the hash-values :of adr3-ht :using (hash-key k)
        :when (eq (car k) n)
-     :minimize (town-dist v) :into mini
-     :finally (progn
-		(maphash
-		 #'(lambda (k v)
-		     (when (eq (town-dist v) mini)
-		       (setf ward-v (make-ward :name (show-ward-name n) :lat (town-lat v) :lon (town-lon v)))))
-		 town-ht)
-		(put-ht n ward-v ward-ht)))) ; => MIN-TOWN
+       :minimize (adr3-dist v) :into mini
+       :finally (progn
+		  (maphash
+		   #'(lambda (k v)
+		       (when (eq (adr3-dist v) mini)
+			 (setf adr2-v (make-adr2 :name (show-adr2-name n) :gm k :lat (adr3-lat v) :lon (adr3-lon v)))))
+		   adr3-ht)
+		  (put-ht n adr2-v adr2-ht))))) ; => MIN-TOWN
 
 
-
-(defun make-towns-ht (ward-ht town-ht)
-  (loop :for i :in towns/ward
-     :count i :into wid
-     :do (loop :for (name lat lon) :in i
-	    :count name :into tid
-	    :do (put-ht (cons wid tid) (make-town :name name :lat lat :lon lon) town-ht)
+(defun make-adr3-ht (adr2-ht adr3-ht)
+  "keyを作成し、htにkeyと構造体のvalueを追加
+町村のハッシュテーブルの作成"
+     ;; (make-adr3-ht adr2-ht adr3-ht)	; => NIL
+     ;; (hash-table-count adr3-ht)		; => 3140
+  (loop :for i :in adr3/adr2 ;行政区単位の町村グループ抽出  
+     :count i :into id2 ;行政番号をセット
+     :do (loop :for (name lat lon) :in i ;グループから町村データを１つずつ抽出
+	    :count name :into id3 ;町村番号を作成
+	    :do (put-ht (cons id2 id3) (make-adr3 :name name :lat (read-from-string lat) :lon (read-from-string lon) :dist 0) adr3-ht)
 	    :finally (progn
-		       (set-dist wid town-ht)
-		       (min-town wid ward-ht town-ht))))) ; => MAKE-TOWNS-HT
+		      (set-dist id2 adr3-ht)
+		      (min-town id2 adr2-ht adr3-ht)
+		      ))))		; => MAKE-ADR3-HT
 
-
-
-(defun pp (t1 t2 ht)
+(defun pp (key1 key2 ht)
   "三平方の定理で、ベクトルの大きさを求める。Pythagorean proposition" 
-  (let ((town1 (gethash t1 ht))
-	(town2 (gethash t2 ht)))
-    (sqrt (+ (expt (- (town-lat town1) (town-lat town2)) 2)
-	     (expt (- (town-lon town1) (town-lon town2)) 2))))) ; => PP
+  (let ((v1 (gethash key1 ht)) ;key1に対応する構造体をv1にセット
+	(v2 (gethash key2 ht))) ;key2に対応する構造体をv2にセット
+    (sqrt (+ (expt (- (adr3-lat v1) (adr3-lat v2)) 2)  
+	     (expt (- (adr3-lon v1) (adr3-lon v2)) 2))))) ; => PP
 
+(defun pp2 (key1 key2 ht)
+  "三平方の定理で、ベクトルの大きさを求める。Pythagorean proposition" 
+  (let ((v1 (gethash key1 ht)) ;key1に対応する構造体をv1にセット
+	(v2 (gethash key2 ht))) ;key2に対応する構造体をv2にセット
+    (sqrt (+ (expt (- (adr2-lat v1) (adr2-lat v2)) 2)  
+	     (expt (- (adr2-lon v1) (adr2-lon v2)) 2))))) ; => PP2
 
-(defun set-dist (n town-ht)
+(defun set-dist (n adr3-ht)
+  "keyを元に組み合わせの全パターンを作成、"
   (check-type n integer)
-  (loop :for (wid . tid) :being the hash-keys :of ht :using (hash-value v)
-     :when (eq wid n)
-     :collect (cons wid tid) :into group
-     :finally (loop :for (t1 t2) :in (comb group)
-		 :do (let ((v (pp t1 t2 ht)))
-		       (incf (town-dist (gethash t1 town-ht)) v)
-		       (incf (town-dist (gethash t2 town-ht)) v))))) ; => SET-DIST
+  (loop :for (id2 . id3) :being the hash-keys :of adr3-ht :using (hash-value v)
+     :when (eq id2 n) ;行政区番号がnと等しい時、
+     :collect (cons id2 id3) :into group ;その行政区番号と各町村番号のconsを順次groupに格納
+     :finally (loop :for (k1 k2) :in (comb group) ; 同一行政区番号の組み合わせパターンからkeyを２つ取り出す。
+		 :do (let ((dist (pp k1 k2 adr3-ht))) ;2地点間の距離を計算しそれぞれの地点に距離を追加
+		       (incf (adr3-dist (gethash k1 adr3-ht)) dist)
+		       (incf (adr3-dist (gethash k2 adr3-ht)) dist))))) ; => SET-DIST
+
+(defun set-dist2 (adr2-ht)
+  "keyを元に組み合わせの全パターンを作成、"
+  (loop :for id2 :being the hash-keys :of adr2-ht :using (hash-value v)
+     :collect id2 :into group ;その行政区番号と各町村番号のconsを順次groupに格納
+     :finally (loop :for (k1 k2) :in (comb group)
+		 :do (let ((dist (pp2 k1 k2 adr2-ht))) ;2地点間の距離を計算しそれぞれの地点に距離を追加
+		       (incf (adr2-dist (gethash k1 adr2-ht)) dist)
+		       (incf (adr2-dist (gethash k2 adr2-ht)) dist))))) ; => SET-DIST2
 

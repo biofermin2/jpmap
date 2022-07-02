@@ -18,6 +18,15 @@ https://www.youtube.com/watch?v=pglVFT-sEcEを参考。
 (defun put-ht (k v ht)
   (setf (gethash k ht) v))		; => PUT-HT
 
+(defun puts-ht (lst ht)
+  (loop :for i :in lst
+	:count i :into cnt
+     :do (put-ht cnt i ht)))		; => PUTS-HT
+
+(defun print-ht (ht)
+  "ハッシュ表の出力関数"
+  (maphash #'(lambda (k v) (print (list k v))) ht)) ; => PRINT-HT
+
 (defun cut (file &key to key val (title t) (use nil) &aux (k-len (length key)))
   "ファイルから必要な列のデータを抽出し、
 ハッシュテーブルにセット。その際タイトル行があれば省く"
