@@ -49,4 +49,3 @@ https://www.youtube.com/watch?v=pglVFT-sEcEを参考。
   (loop :for (k1 k2 k3) :being the hash-keys :of ht :using (hash-value v)
      :collect (cons k2 (cons k3 v)) :into acc
      :finally (format t "~a" (cons k1 (group-by acc))))) ; => HT2TREE
-

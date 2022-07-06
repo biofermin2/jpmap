@@ -1,4 +1,4 @@
-﻿(in-package :jpmap)
+(in-package :jpmap)
 
 (defun adr3->2 (adr3-name)
   (caar (seek adr3-name (format nil "~a" adr-tree) :skin 1 :str nil))) ; => ADR3->2
