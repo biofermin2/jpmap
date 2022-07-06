@@ -1,13 +1,25 @@
-(defsystem :jpmap
+(defsystem "jpmap"
   :version "0.0.1"
-  :licence "MIT"
+  :author "biofermin2"
+  :license "MIT"
+  :depends-on ("unio"
+               "group-by")
+  :serial t
+  :components ((:module "src"
+                :components
+                ((:file "csv2tree")
+		 (:file "set-hts")
+		 (:file "main"))))
   :description "make a location infomation dataset"
-  :author "biofermin2 <twitter @biofermin2>"
-  :depends-on ("unio" "group-by")
-  :components
-  ((:module "src"
-     :serial t
-     :components ((:file "package")
-		  (:file "csv2tree")
-		  (:file "set-hts")
-		  (:file "jpmap")))))
+  :in-order-to ((test-op (test-op "jpmap/tests"))))
+
+(defsystem "jpmap/tests"
+  :author ""
+  :license ""
+  :depends-on ("jpmap"
+               "rove")
+  :components ((:module "tests"
+                :components
+                ((:file "main"))))
+  :description "Test system for jpmap"
+  :perform (test-op (op c) (symbol-call :rove :run c)))
