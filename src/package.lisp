@@ -1,3 +1,4 @@
 (defpackage jpmap
-  (:use :cl))
+  (:use :cl)
+  (:export :cut :ht2tree :main))
 
