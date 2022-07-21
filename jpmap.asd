@@ -3,13 +3,10 @@
   :author "biofermin2"
   :license "MIT"
   :depends-on ("unio"
-               "group-by")
+               "group-by"
+	       "dexador")
   :serial t
-  :components ((:module "src"
-                :components
-                ((:file "csv2tree")
-		 (:file "set-hts")
-		 (:file "main"))))
+  :components ((:file "jpmap"))
   :description "make a location infomation dataset"
   :in-order-to ((test-op (test-op "jpmap/tests"))))
 
