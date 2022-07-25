@@ -120,8 +120,6 @@ https://www.youtube.com/watch?v=pglVFT-sEcEを参考。
 ;; (defun parent (area-name)
 ;;   (caar (seek area-name (format nil "~a" adr-tree) :skin 1 :str nil))) ; => PARENT
 
-;; (parent "金蔵")				; => 輪島市
-
 ;; 行政区名
 
 (defun show-adr2-name (n adr2-name)
